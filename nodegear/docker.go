@@ -4,6 +4,7 @@ import (
 	//"../connection"
 	"../docker"
 	"../config"
+	"../models"
 	"net/http"
 	"fmt"
 	"encoding/json"
@@ -126,13 +127,13 @@ func ListenForEvents () {
 	}
 }
 
-func (p *Instance) CreateContainer(environment []string, app models.App) {
+func (p *Instance) CreateContainer(environment []string, app *models.App) {
 	createReq := &createContainer{
 		Env: environment,
 		ExposedPorts: map[string]interface{}{ "80/tcp": struct{}{}},
 		Volumes: struct{}{},
 		Image: app.Docker.Image,
-		Cmd: app.Docker.Command,
+		Cmd: &app.Docker.Command,
 	}
 
 	createReqBody, err := json.Marshal(createReq)
@@ -202,8 +203,6 @@ func (p *Instance) CreateContainer(environment []string, app models.App) {
 
 	p.Container_id = createResponse.Id
 	fmt.Println("Container:", p.Container_id)
-
-	p.StartContainer()
 }
 
 func (p *Instance) StartContainer() {
@@ -305,8 +304,11 @@ func (p *Instance) GetContainerLogs() {
 	
 	reader := bufio.NewScanner(response.Body)
 	for reader.Scan() {
-		line := []byte(reader.Text())
-		line = line[8:]
+		line := reader.Bytes()
+		if len(line) > 8 {
+			line = line[8:]
+		}
+
 		p.Log(string(line) + "\n")
 	}
 
@@ -317,7 +319,7 @@ func (p *Instance) GetContainerLogs() {
 	fmt.Println("Quit trailing loggs")
 }
 
-func (p *Instance) PullContainer(app models.App) bool {
+func (p *Instance) PullContainer(app *models.App) bool {
 	client := docker.GetClient()
 	request, err := http.NewRequest("POST", config.Configuration.Docker_url + "/v1.14/images/create?fromImage=" + app.Docker.Image, bytes.NewBuffer([]byte("")))
 	if err != nil {
@@ -379,4 +381,32 @@ func (p *Instance) GetContainer() *containerResponse {
 	}
 
 	return &res
+}
+
+func (p *Instance) DeleteContainer() {
+	if len(p.Container_id) == 0 {
+		return
+	}
+
+	client := docker.GetClient()
+	request, err := http.NewRequest("DELETE", config.Configuration.Docker_url + "/v1.14/containers/" + p.Container_id + "?v=0", bytes.NewBuffer([]byte("")))
+	if err != nil {
+		panic(err)
+	}
+
+	request.Header.Set("User-Agent", "Docker-Client/1.2.0")
+
+	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Delete container status:", response.Status)
+	if response.StatusCode != 204 {
+		p.Log("\n [ERR] Could not delete container.\n")
+		
+		return
+	}
+
+	p.Log("\n Container deleted.\n ====================\n\n")
 }

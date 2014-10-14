@@ -23,6 +23,7 @@ func (p processLogTest) setup() nodegear.Instance {
 		Process_id: p.Process,
 		CurrentLog: p.Process.Hex() + "-log",
 	}
+	instance.Init()
 
 	return instance
 }

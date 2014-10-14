@@ -43,6 +43,8 @@ type Instance struct {
 }
 
 func (p *Instance) Remove() {
+	p.CleanProcess()
+
 	for i, proc := range Instances {
 		if &proc == &p {
 			Instances = append(Instances[:i], Instances[i+1:]...)
@@ -84,6 +86,16 @@ func (p *Instance) GetAppProcessModel() *models.AppProcess {
 	}
 
 	return &appProcess
+}
+
+func (p *Instance) Init() {
+	// Get the app
+	app := p.GetAppModel(&bson.M{
+		"user": 1,
+	})
+
+	p.User_id = app.User
+	p.App_location = config.Configuration.Homepath + p.User_id.Hex() + "/" + p.Process_id.Hex()
 }
 
 func (p *Instance) Launch() {
@@ -147,20 +159,8 @@ func (p *Instance) Start() {
 		return
 	}
 
-	if p.Starting == true {
-		(&models.AppEvent{
-			App: p.App_id,
-			Process: p.Process_id,
-			Name: "Process Busy",
-			Message: "We're processing an event for this process. Please wait for this to finish.",
-		}).Add()
-
-		return
-	}
-
 	fmt.Println("Starting Process", p.Process_id)
 
-	p.Starting = true
 	p.RestartProcess = false
 	p.Intended_stop = false
 
@@ -175,22 +175,10 @@ func (p *Instance) Start() {
 }
 
 func (p *Instance) Stop() {
-	if p.Starting == true {
-		(&models.AppEvent{
-			App: p.App_id,
-			Process: p.Process_id,
-			Name: "Process Busy",
-			Message: "We're processing an event for this process. Please wait for this to finish.",
-		}).Add()
-
-		return
-	}
-
 	fmt.Println("Stopping Process", p.Process_id)
 
 	p.RestartProcess = false
 	p.Intended_stop = false
-	p.Starting = true
 
 	(&models.AppEvent{
 		App: p.App_id,
@@ -226,7 +214,7 @@ func (p *Instance) Stop() {
 }
 
 func (p *Instance) InstallProcess(app *models.App, environment []string) {
-	userpath := config.Configuration.Homepath + app.User.Hex()
+	userpath := config.Configuration.Homepath + p.User_id.Hex()
 
 	// Install the process
 	if err := os.MkdirAll(userpath, 0755); err != nil {
@@ -234,7 +222,7 @@ func (p *Instance) InstallProcess(app *models.App, environment []string) {
 	}
 
 	// Install private key under $HOME/.ssh
-	p.InstallPrivateKey(app)
+	p.InstallPrivateKey()
 
 	// Download snapshot
 	process := p.GetAppProcessModel()
@@ -245,9 +233,6 @@ func (p *Instance) InstallProcess(app *models.App, environment []string) {
 	if len(process.DataSnapshot.Hex()) > 0 {
 		p.ApplySnapshot(process)
 	}
-
-	// Clone the git repo
-	processpath := userpath + "/" + p.Process_id.Hex()
 
 	p.Log("\n Installation of App " + app.Name + " - Process " + process.Name + "\n ==========================================\n\n")
 
@@ -272,7 +257,7 @@ func (p *Instance) InstallProcess(app *models.App, environment []string) {
 	}
 
 	// Clones git, checks out the right branch and applies the snapshot
-	command := exec.Command(config.Configuration.Scriptspath + "/installProcess.sh", userpath, processpath, app.Location, git_branch, use_snapshot, snapshot_path)
+	command := exec.Command(config.Configuration.Scriptspath + "/installProcess.sh", userpath, p.App_location, app.Location, git_branch, use_snapshot, snapshot_path)
 	reader, writer := io.Pipe()
 	command.Stdout = writer
 	command.Stderr = writer
@@ -299,7 +284,6 @@ func (p *Instance) InstallProcess(app *models.App, environment []string) {
 		p.Starting = false
 		p.Running = false
 
-		// CleanProcess()
 		p.Stop()
 
 		redis_conn := connection.Redis().Get()
@@ -307,18 +291,26 @@ func (p *Instance) InstallProcess(app *models.App, environment []string) {
 			panic(err)
 		}
 		redis_conn.Close()
+
+		return
 	}
 
-	p.CreateContainer(environment)
+	p.CreateContainer(environment, app)
+
+	if len(p.Container_id) > 0 {
+		p.StartContainer()
+	} else {
+		fmt.Println("Container ID not present. Somethign has gone wrong!", p)
+	}
 }
 
-func (p *Instance) InstallPrivateKey(app *models.App) {
-	userpath := config.Configuration.Homepath + app.User.Hex()
+func (p *Instance) InstallPrivateKey() {
+	userpath := config.Configuration.Homepath + p.User_id.Hex()
 
 	var key models.RSAKey
 	c := connection.MongoC(models.RSAKeyC)
 	findErr := c.Find(&bson.M{
-		"user": app.User.Hex(),
+		"user": p.User_id.Hex(),
 		"deleted": false,
 		"installing": false,
 		"installed": false,
@@ -357,6 +349,31 @@ func (p *Instance) InstallPrivateKey(app *models.App) {
 	}
 }
 
-func (p *Instance) ApplySnapshot(process *models.AppProcess) {
+func (p *Instance) CleanProcess() {
+	fmt.Println("Cleaning Process", p.Process_id)
 
+	p.DeleteContainer()
+
+	use_snapshot := "0"
+	snapshot_path := ""
+	snapshot_id := bson.NewObjectId()
+	if config.Configuration.Storage.Enabled == true {
+		use_snapshot = "1"
+		snapshot_path = "/tmp/snapshot_" + snapshot_id.Hex() + ".diff"
+	}
+
+	fmt.Println(p.App_location)
+	command := exec.Command(config.Configuration.Scriptspath + "/cleanProcess.sh", p.User_id.Hex(), p.App_location, use_snapshot, snapshot_path)
+
+	if err := command.Start(); err != nil {
+		panic(err)
+	}
+
+	if err := command.Wait(); err != nil {
+		panic(err)
+	}
+
+	if config.Configuration.Storage.Enabled == true {
+		p.SaveSnapshot(snapshot_id, snapshot_path)
+	}
 }

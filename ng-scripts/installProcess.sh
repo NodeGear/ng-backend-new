@@ -36,7 +36,11 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ $5 -eq 1 ]; then
+	#set +o errexit
+	echo $6
 	git apply $6
+	#set -o errexit
+
 	rm -f $6
 fi
 

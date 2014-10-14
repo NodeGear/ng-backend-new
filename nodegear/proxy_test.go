@@ -48,6 +48,7 @@ func (p *proxyTest) setup(identifier string) (nodegear.Instance, []models.AppDom
 		App_id: p.App,
 		Process_id: p.Process,
 	}
+	instance.Init()
 
 	// Add a few domains to db
 	var domains []models.AppDomain

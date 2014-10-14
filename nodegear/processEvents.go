@@ -87,12 +87,12 @@ func (p *Instance) DidStop () {
 		panic(err)
 	}
 	redis.Close()
-
 }
 
 func (p *Instance) DidExit () {
 	fmt.Println("Did Exit")
 	p.Running = false
+	p.Starting = false
 
 	(&models.AppEvent{
 		App: p.App_id,
@@ -120,6 +120,8 @@ func (p *Instance) DidExit () {
 		panic(err)
 	}
 	redis.Close()
+
+	p.Remove()
 }
 
 func (p *Instance) DidRestart () {

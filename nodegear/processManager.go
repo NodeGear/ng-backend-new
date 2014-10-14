@@ -32,6 +32,7 @@ func FetchPreviousInstances () {
 				App_id: proc.App,
 				Process_id: proc.ID,
 			}
+			instance.Init()
 
 			Instances = append(Instances, instance)
 		}
@@ -40,7 +41,6 @@ func FetchPreviousInstances () {
 
 		instance.Running = true
 		instance.Inserted_log_to_redis = true
-		instance.App_location = "/home/" + userId.Hex() + "/" + instance.Process_id.Hex()
 		instance.Container_id = proc.ContainerID
 		
 		c := connection.MongoC(models.AppProcessUptimeC)

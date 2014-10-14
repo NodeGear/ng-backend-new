@@ -17,8 +17,8 @@
 		"appLimit": 20
 	},
 	"storage": {
-		"enabled": false,
-		"server": "http://10.0.3.3:8899",
+		"enabled": true,
+		"server": "http://10.0.3.2:8888",
 		"auth": "ng_fs"
 	},
 	"docker_socket": true,

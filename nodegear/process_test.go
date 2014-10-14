@@ -76,6 +76,7 @@ func TestProcess(t *testing.T) {
 		App_id: App.ID,
 		Process_id: Process.ID,
 	}
+	instance.Init()
 	nodegear.Instances = append(nodegear.Instances, &instance)
 
 	go nodegear.ListenForEvents()

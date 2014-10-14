@@ -61,19 +61,32 @@ func dispatch(msg []byte) {
 			Process_id: db_process.ID,
 			App_id: db_process.App,
 		}
+		process.Init()
 
 		is := append(nodegear.Instances, process)
 		nodegear.Instances = is
 	}
 
-	switch message.Action {
-	case "start":
-		go process.Start()
-	case "stop":
-		go process.Stop()
-	case "restart_uptime":
-		go process.RestartUptime()
-	//case "restart":
-	//	process.Restart()
+	if message.Action == "start" || message.Action == "stop" {
+		if process.Starting == true {
+			(&models.AppEvent{
+				App: process.App_id,
+				Process: process.Process_id,
+				Name: "Process Busy",
+				Message: "We're processing an event for this process. Please wait for this to finish.",
+			}).Add()
+
+			return
+		}
+
+		process.Starting = true
+
+		if message.Action == "start" {
+			process.Start()
+		} else if message.Action == "stop" {
+			process.Stop()
+		}
+	} else if message.Action == "restart_uptime" {
+		process.RestartUptime()
 	}
 }
