@@ -1,0 +1,29 @@
+{
+	"redis_port": 6379,
+	"redis_host": "10.0.3.2",
+	"redis_key": "yep",
+	"bugsnag_key": "",
+	"smtp": {
+		"user": "matej@matej.me",
+		"pass": "eELIT9FIJIU52NaWvrMrPg"
+	},
+	"db": "mongodb://ng:mongodb_auth_pass@10.0.3.2:2017/ng",
+	"server": {
+		"identifier": "mac",
+		"name": "Mac Server",
+		"price_per_hour": 1,
+		"location": "10.0.3.6",
+		"app_memory": 256,
+		"appLimit": 20
+	},
+	"storage": {
+		"enabled": false,
+		"server": "http://10.0.3.3:8899",
+		"auth": "ng_fs"
+	},
+	"docker_socket": true,
+	"docker_ip": "/var/run/docker.sock",
+	"docker_port": 3030,
+	"homepath": "/home/ng_users/",
+	"scriptspath": "/var/lib/backend/ng-scripts"
+}
