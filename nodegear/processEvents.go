@@ -8,7 +8,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func (p *Instance) DidStart () {
+func (p *Instance) DidStart() {
 	fmt.Println("Did Start")
 	p.Running = true
 	p.Starting = false
@@ -56,7 +56,7 @@ func (p *Instance) DidStart () {
 	redis.Close()
 }
 
-func (p *Instance) DidStop () {
+func (p *Instance) DidStop() {
 	fmt.Println("Did Stop")
 	p.Running = false
 	p.Starting = false
@@ -89,7 +89,7 @@ func (p *Instance) DidStop () {
 	redis.Close()
 }
 
-func (p *Instance) DidExit () {
+func (p *Instance) DidExit() {
 	fmt.Println("Did Exit")
 	p.Running = false
 	p.Starting = false
@@ -124,6 +124,6 @@ func (p *Instance) DidExit () {
 	p.Remove()
 }
 
-func (p *Instance) DidRestart () {
+func (p *Instance) DidRestart() {
 	fmt.Println("Did Restart")
 }

@@ -34,7 +34,8 @@ func FetchPreviousInstances () {
 			}
 			instance.Init()
 
-			Instances = append(Instances, instance)
+			instances := append(*Instances, instance)
+			Instances = &instances
 		}
 
 		userId := instance.GetAppModel(&bson.M{ "user": 1 }).User
@@ -76,7 +77,7 @@ func FetchPreviousInstances () {
 		instance.CurrentLog = latest_log
 
 		container := instance.GetContainer()
-		if container.State.Running != true {
+		if container == nil || container.State.Running != true {
 			instance.Remove()
 			continue
 		}
@@ -86,7 +87,7 @@ func FetchPreviousInstances () {
 }
 
 func FindInstanceByProcessId (process_id bson.ObjectId) *Instance {
-	for _, proc := range Instances {
+	for _, proc := range *Instances {
 		if proc.Process_id == process_id {
 			return proc
 		}
@@ -96,8 +97,8 @@ func FindInstanceByProcessId (process_id bson.ObjectId) *Instance {
 }
 
 func FindInstanceByContainer (container_id string) *Instance {
-	fmt.Println("Instances:", len(Instances))
-	for _, proc := range Instances {
+	fmt.Println("Instances:", len(*Instances))
+	for _, proc := range *Instances {
 		fmt.Println("proc.Container_id", proc.Container_id)
 		fmt.Println(container_id)
 		if proc.Container_id == container_id {

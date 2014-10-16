@@ -8,7 +8,7 @@ import (
 var mongodb_c *mgo.Session
 var mongodb_db *mgo.Database
 
-func Mongo () *mgo.Session {
+func Mongo() *mgo.Session {
 	if mongodb_c == nil {
 		mongo, err := mgo.Dial(config.Configuration.Db)
 
@@ -22,7 +22,7 @@ func Mongo () *mgo.Session {
 	return mongodb_c
 }
 
-func MongoDb () *mgo.Database {
+func MongoDb() *mgo.Database {
 	if mongodb_db == nil {
 		m := Mongo()
 		mongodb_db = m.DB("ng")

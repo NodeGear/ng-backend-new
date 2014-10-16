@@ -9,7 +9,7 @@ import (
 
 var redis_c *redis.Pool
 
-func Redis () *redis.Pool {
+func Redis() *redis.Pool {
 	if redis_c == nil {
 		redis_c = &redis.Pool{
 			MaxIdle: 3,

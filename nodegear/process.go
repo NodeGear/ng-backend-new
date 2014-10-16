@@ -17,7 +17,7 @@ import (
 	"bufio"
 )
 
-var Instances []*Instance
+var Instances *[]*Instance
 
 type Instance struct {
 	App_id bson.ObjectId
@@ -40,16 +40,30 @@ type Instance struct {
 	Port int
 
 	Container_id string
+
+	LastCPU uint64
+	AppMemory uint64
+}
+
+func init() {
+	is := make([]*Instance, 0)
+	Instances = &is
 }
 
 func (p *Instance) Remove() {
 	p.CleanProcess()
 
-	for i, proc := range Instances {
-		if &proc == &p {
-			Instances = append(Instances[:i], Instances[i+1:]...)
+	for i, proc := range *Instances {
+		if proc.Process_id.Hex() == p.Process_id.Hex() {
+			instances := *Instances
+			instances[i] = instances[len(instances)-1]
+			instances = instances[:len(instances)-1]
+			Instances = &instances
+			return
 		}
 	}
+
+	fmt.Println("not found")
 }
 
 func (p *Instance) GetAppModel(select_data *bson.M) *models.App {
@@ -96,6 +110,7 @@ func (p *Instance) Init() {
 
 	p.User_id = app.User
 	p.App_location = config.Configuration.Homepath + p.User_id.Hex() + "/" + p.Process_id.Hex()
+	p.AppMemory = uint64(config.Configuration.Server.App_memory) * 1024 * 1024
 }
 
 func (p *Instance) Launch() {
@@ -370,7 +385,8 @@ func (p *Instance) CleanProcess() {
 	}
 
 	if err := command.Wait(); err != nil {
-		panic(err)
+		fmt.Println("Could not clean process", err)
+		return
 	}
 
 	if config.Configuration.Storage.Enabled == true {

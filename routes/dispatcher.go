@@ -63,8 +63,8 @@ func dispatch(msg []byte) {
 		}
 		process.Init()
 
-		is := append(nodegear.Instances, process)
-		nodegear.Instances = is
+		is := append(*nodegear.Instances, process)
+		nodegear.Instances = &is
 	}
 
 	if message.Action == "start" || message.Action == "stop" {
@@ -85,7 +85,7 @@ func dispatch(msg []byte) {
 			process.Start()
 		} else if message.Action == "stop" {
 			process.Stop()
-		}
+		} 
 	} else if message.Action == "restart_uptime" {
 		process.RestartUptime()
 	}

@@ -4,6 +4,7 @@ import (
 	"./routes"
 	"./connection"
 	"./nodegear"
+	"./metrics"
 	"fmt"
 )
 
@@ -14,6 +15,8 @@ func main() {
 	connection.Redis()
 
 	nodegear.Init()
+	//go metrics.SystemStats()
+	go metrics.ContainerStats()
 
 	fmt.Println("Fetching Processes")
 	nodegear.FetchPreviousInstances()

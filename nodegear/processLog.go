@@ -1,12 +1,12 @@
 package nodegear
 
 import (
-	"fmt"
+	//"fmt"
 	"../connection"
 )
 
 func (p *Instance) Log(what string) {
-	fmt.Printf("%s", what)
+	//fmt.Printf("%s", what)
 
 	redis := connection.Redis().Get()
 	defer redis.Close()
