@@ -15,7 +15,7 @@ func main() {
 	connection.Redis()
 
 	nodegear.Init()
-	//go metrics.SystemStats()
+	go metrics.SystemStats()
 	go metrics.ContainerStats()
 
 	fmt.Println("Fetching Processes")
