@@ -136,7 +136,7 @@ func (p *Instance) Launch() {
 
 	fmt.Println("Port:", port)
 	p.Port = port
-	
+
 	environment := []string{"PORT=80"}
 
 	for _, e := range env {
@@ -144,7 +144,7 @@ func (p *Instance) Launch() {
 	}
 
 	fmt.Println(environment)
-	
+
 	p.CurrentLog = p.Process_id.Hex() + "_" + strconv.FormatInt(p.Start_time.UnixNano(), 10)
 
 	// Get the app
@@ -295,7 +295,7 @@ func (p *Instance) InstallProcess(app *models.App, environment []string) {
 			Name: "Install Error",
 			Message: "App couldn't be installed at this time. Check the logs!",
 		}).Add()
-		
+
 		p.Starting = false
 		p.Running = false
 
@@ -372,7 +372,12 @@ func (p *Instance) CleanProcess() {
 	use_snapshot := "0"
 	snapshot_path := ""
 	snapshot_id := bson.NewObjectId()
-	if config.Configuration.Storage.Enabled == true {
+
+	app := p.GetAppModel(&bson.M{
+		"useSnapshots": 1,
+	})
+
+	if config.Configuration.Storage.Enabled == true && app.UseSnapshots == true {
 		use_snapshot = "1"
 		snapshot_path = "/tmp/snapshot_" + snapshot_id.Hex() + ".diff"
 	}
@@ -389,7 +394,7 @@ func (p *Instance) CleanProcess() {
 		return
 	}
 
-	if config.Configuration.Storage.Enabled == true {
+	if config.Configuration.Storage.Enabled == true && app.UseSnapshots == true {
 		p.SaveSnapshot(snapshot_id, snapshot_path)
 	}
 }

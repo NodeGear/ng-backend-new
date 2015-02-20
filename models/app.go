@@ -25,4 +25,5 @@ type App struct {
 			Name string `bson:"name"`
 		} `bson:"links"`
 	} `bson:"docker"`
+	UseSnapshots bool `bson:"useSnapshots"`
 }

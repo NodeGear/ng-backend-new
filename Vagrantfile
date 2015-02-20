@@ -22,7 +22,7 @@ Vagrant.configure("2") do |config|
 			"development:children" => ["backend"]
 		}
 
-		ansible.playbook = "/Users/matejkramny/Projects/ng-infrastructure/infrastructure.yml"
+		ansible.playbook = "~/p/ng-infrastructure/infrastructure.yml"
 
 		ansible.limit = 'all'
 	end
@@ -44,6 +44,6 @@ Vagrant.configure("2") do |config|
 			"development:children" => ["backend", "proxy"]
 		}
 
-		ansible.playbook = "/Users/matejkramny/Projects/ng-infrastructure/proxy.yml"
+		ansible.playbook = "~/p/ng-infrastructure/proxy.yml"
 	end
 end

@@ -301,7 +301,7 @@ func (p *Instance) GetContainerLogs() {
 	}
 
 	fmt.Println(response.Status)
-	
+
 	reader := bufio.NewScanner(response.Body)
 	for reader.Scan() {
 		line := reader.Bytes()
@@ -337,15 +337,17 @@ func (p *Instance) PullContainer(app *models.App) bool {
 	if response.StatusCode != 200 {
 		return false
 	}
-	
-	reader := bufio.NewScanner(response.Body)
-	for reader.Scan() {
-		line := []byte(reader.Text())
-		fmt.Println("Pull Image Response", string(line))
-	}
 
-	if err := reader.Err(); err != nil {
-		panic(err)
+	reader := bufio.NewReader(response.Body)
+	for {
+		line, _, err := reader.ReadLine()
+		if err == io.EOF {
+			break
+		} else {
+			panic(err)
+		}
+
+		fmt.Println("Pull Image Response", line)
 	}
 
 	return true
@@ -369,7 +371,7 @@ func (p *Instance) GetContainer() *containerResponse {
 	if response.StatusCode != 200 {
 		return nil
 	}
-	
+
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		panic(err)
@@ -404,7 +406,7 @@ func (p *Instance) DeleteContainer() {
 	fmt.Println("Delete container status:", response.Status)
 	if response.StatusCode != 204 {
 		p.Log("\n [ERR] Could not delete container.\n")
-		
+
 		return
 	}
 
