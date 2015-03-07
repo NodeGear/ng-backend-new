@@ -32,38 +32,37 @@ type createContainer struct {
 	OpenStdin bool `json:"OpenStdin"`
 	StdinOnce bool `json:"StdinOnce"`
 	Env []string `json:"Env"`
-	Cmd *string `json:"Cmd"`
+	Cmd []string `json:"Cmd"`
 	Image string `json:"Image"`
 	Volumes struct{} `json:"Volumes"`
 	WorkingDir string `json:"WorkingDir"`
 	Entrypoint *string `json:"Entrypoint"`
 	NetworkDisabled bool `json:"NetworkDisabled"`
 	OnBuild map[string]interface{} `json:"OnBuild"`
+	HostConfig struct {
+		Binds []string `json:"Binds"`
+		ContainerIDFile string `json:"ContainerIDFile"`
+		LxcConf []string `json:"LxcConf"`
+		Privileged bool `json:"Privileged"`
+		PortBindings map[string][]*portBinding `json:"PortBindings"`
+		Links []string `json:"Links"`
+		PublishAllPorts bool `json:"PublishAllPorts"`
+		Dns []string `json:"Dns"`
+		DnsSearch *string `json:"DnsSearch"`
+		VolumesFrom *string `json:"VolumesFrom"`
+		NetworkMode string `json:"NetworkMode"`
+		CapAdd *[]string `json:"CapAdd"`
+		CapDrop *[]string `json:"CapDrop"`
+		RestartPolicy struct {
+			Name string `json:"Name"`
+			MaximumRetryCount int `json:"MaximumRetryCount"`
+		} `json:"RestartPolicy"`
+	}
 }
 
 type portBinding struct {
 	HostIp string `json:"HostIp"`
 	HostPort string `json:"HostPort"`
-}
-
-type startContainer struct {
-	Binds []string `json:"Binds"`
-	ContainerIDFile string `json:"ContainerIDFile"`
-	LxcConf []string `json:"LxcConf"`
-	Privileged bool `json:"Privileged"`
-	PortBindings map[string][]*portBinding `json:"PortBindings"`
-	Links []string `json:"Links"`
-	PublishAllPorts bool `json:"PublishAllPorts"`
-	Dns []string `json:"Dns"`
-	DnsSearch *string `json:"DnsSearch"`
-	VolumesFrom *string `json:"VolumesFrom"`
-	NetworkMode string `json:"NetworkMode"`
-	CapAdd *[]string `json:"CapAdd"`
-	CapDrop *[]string `json:"CapDrop"`
-	RestartPolicy struct {
-		Name string `json:"Name"`
-		MaximumRetryCount int `json:"MaximumRetryCount"`
-	} `json:"RestartPolicy"`
 }
 
 type createContainerResponse struct {
@@ -128,13 +127,28 @@ func ListenForEvents () {
 }
 
 func (p *Instance) CreateContainer(environment []string, app *models.App) {
+	userpath := config.Configuration.Homepath + p.User_id.Hex()
+
+	var binding []*portBinding
+	binding = append(binding, &portBinding{
+		HostIp: "",
+		HostPort: strconv.Itoa(p.Port),
+	})
+
+	bind := make(map[string][]*portBinding)
+	bind["80/tcp"] = binding
+
 	createReq := &createContainer{
 		Env: environment,
 		ExposedPorts: map[string]interface{}{ "80/tcp": struct{}{}},
 		Volumes: struct{}{},
-		Image: app.Docker.Image,
-		Cmd: &app.Docker.Command,
+		Image: "castawaylabs/node-docker",//app.Docker.Image,
+		Cmd: []string{"/usr/local/bin/nodegear_bootstrap"},
 	}
+
+	createReq.HostConfig.Binds = []string{userpath + "/" + p.Process_id.Hex() + ":/srv/app:rw", userpath + "/.ssh:/root/.ssh:r"}
+	createReq.HostConfig.PortBindings = bind
+	createReq.HostConfig.Dns = []string{"8.8.8.8", "8.8.4.4"}
 
 	createReqBody, err := json.Marshal(createReq)
 	if err != nil {
@@ -156,6 +170,12 @@ func (p *Instance) CreateContainer(environment []string, app *models.App) {
 	}
 
 	fmt.Println("Create container response", response.Status)
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		panic(err)
+	}
+
 	if response.StatusCode == 404 {
 		p.Log("\n [WARN] Container not found. Pulling container.\n")
 		didPull := p.PullContainer(app)
@@ -191,47 +211,19 @@ func (p *Instance) CreateContainer(environment []string, app *models.App) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		panic(err)
-	}
-
 	var createResponse createContainerResponse
 	if err = json.Unmarshal(body, &createResponse); err != nil {
 		panic(err)
 	}
+
 
 	p.Container_id = createResponse.Id
 	fmt.Println("Container:", p.Container_id)
 }
 
 func (p *Instance) StartContainer() {
-	userpath := config.Configuration.Homepath + p.User_id.Hex()
-
-	var binding []*portBinding
-	binding = append(binding, &portBinding{
-		HostIp: "",
-		HostPort: strconv.Itoa(p.Port),
-	})
-
-	bind := make(map[string][]*portBinding)
-	bind["80/tcp"] = binding
-
-	start := startContainer{
-		Binds: []string{userpath + "/" + p.Process_id.Hex() + ":/srv/app:rw", userpath + "/.ssh:/root/.ssh:r"},
-		PortBindings: bind,
-		Dns: []string{"8.8.8.8", "8.8.4.4"},
-	}
-
-	reqBody, err := json.Marshal(start)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(reqBody))
-
 	client := docker.GetClient()
-	request, err := http.NewRequest("POST", config.Configuration.Docker_url + "/v1.14/containers/" + p.Container_id + "/start", bytes.NewBuffer(reqBody))
+	request, err := http.NewRequest("POST", config.Configuration.Docker_url + "/v1.14/containers/" + p.Container_id + "/start", bytes.NewBuffer([]byte{}))
 	if err != nil {
 		panic(err)
 	}

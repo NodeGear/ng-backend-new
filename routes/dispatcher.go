@@ -42,13 +42,13 @@ func dispatch(msg []byte) {
 
 	if process == nil {
 		fmt.Println("Instance not found", message)
-		
+
 		c := connection.MongoC(models.AppProcessC)
 
 		// Find the instance
 		var db_process models.AppProcess
 		err := c.FindId(bson.ObjectIdHex(message.Id)).One(&db_process)
-		
+
 		if err != nil {
 			if err.Error() == "not found" {
 				return
@@ -61,7 +61,10 @@ func dispatch(msg []byte) {
 			Process_id: db_process.ID,
 			App_id: db_process.App,
 		}
-		process.Init()
+		if did_init := process.Init(); did_init != true {
+			fmt.Println("Unable to run process")
+			return
+		}
 
 		is := append(*nodegear.Instances, process)
 		nodegear.Instances = &is
@@ -85,7 +88,7 @@ func dispatch(msg []byte) {
 			process.Start()
 		} else if message.Action == "stop" {
 			process.Stop()
-		} 
+		}
 	} else if message.Action == "restart_uptime" {
 		process.RestartUptime()
 	}

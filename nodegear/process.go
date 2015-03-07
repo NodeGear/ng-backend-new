@@ -102,15 +102,21 @@ func (p *Instance) GetAppProcessModel() *models.AppProcess {
 	return &appProcess
 }
 
-func (p *Instance) Init() {
+func (p *Instance) Init() bool {
 	// Get the app
 	app := p.GetAppModel(&bson.M{
 		"user": 1,
 	})
 
+	if app == nil {
+		return false
+	}
+
 	p.User_id = app.User
 	p.App_location = config.Configuration.Homepath + p.User_id.Hex() + "/" + p.Process_id.Hex()
 	p.AppMemory = uint64(config.Configuration.Server.App_memory) * 1024 * 1024
+
+	return true
 }
 
 func (p *Instance) Launch() {
@@ -137,9 +143,13 @@ func (p *Instance) Launch() {
 	fmt.Println("Port:", port)
 	p.Port = port
 
-	environment := []string{"PORT=80"}
+	environment := []string{"PORT=80", "NODE_ENV=production"}
 
 	for _, e := range env {
+		if e.Name == "DATABASE_HOST" && e.Value == "10.240.7.66" {
+			e.Value = "10.240.249.130"
+		}
+
 		environment = append(environment, e.Name + "=" + e.Value)
 	}
 
