@@ -333,22 +333,36 @@ func (p *Instance) PullContainer(app *models.App) bool {
 		panic(err)
 	}
 
-	fmt.Println(response.Status)
+	fmt.Println("Pull Container:", response.Status)
 	if response.StatusCode != 200 {
 		return false
 	}
 
-	reader := bufio.NewReader(response.Body)
+	dec := json.NewDecoder(response.Body)
+
 	for {
-		line, _, err := reader.ReadLine()
-		if err == io.EOF {
-			break
-		} else {
+		var message interface{}
+		if err := dec.Decode(&message); err != nil {
+			if err == io.EOF {
+				break
+			}
+
 			panic(err)
 		}
 
-		fmt.Println("Pull Image Response", line)
+		fmt.Println(message)
 	}
+
+	// reader := bufio.NewScanner(response.Body)
+	// for reader.Scan() {
+	// 	line := reader.Text()
+	// 	fmt.Println("Pull Image Response", line)
+	// }
+
+	// if err := reader.Err(); err != nil {
+	// 	fmt.Println("Err reading pull image response:", err)
+	// 	panic(err)
+	// }
 
 	return true
 }
